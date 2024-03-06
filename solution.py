@@ -1,6 +1,16 @@
 import cv2 as cv
 import numpy as np
 import math
+import os
+
+def write_tuples_to_file(array_of_tuples, subdirectory, file_name):
+    # See if there is a better way to do this
+    cwd = os.getcwd()
+    file_path = os.path.join(subdirectory, file_name)
+    with open(cwd + file_path, 'w') as file:
+        for tpl in array_of_tuples:
+            line = ' '.join(map(str, tpl)) + '\n'
+            file.write(line)
 
 def region_of_interest(img, vertices):
     # Define a blank matrix that matches the image height/width.
@@ -54,7 +64,8 @@ def find_intersection(line1, line2):
     return int(x), int(y)
 
 def main():
-    cap = cv.VideoCapture("labeled/2.hevc")
+    cap = cv.VideoCapture("labeled/0.hevc")
+    output_offsets = []
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -151,16 +162,22 @@ def main():
 
             yaw_angle = math.atan(disp_x / focal_length)
             pitch_angle = math.atan(disp_y / focal_length)
-
+            output_offsets.append(("{:e}".format(abs(pitch_angle)), "{:e}".format(abs(yaw_angle))))
             print(f"Estimated Yaw: {yaw_angle} degrees")
             print(f"Estimated Pitch: {pitch_angle} degrees")
-
+        else:
+            try:
+                output_offsets.append(output_offsets[-1])
+            except:
+                print("First frame error")
 
         if cv.waitKey(50) & 0xFF == ord('q'):
             break
         cv.imshow("frame", line_image)
     cap.release()
     cv.destroyAllWindows()
+    write_tuples_to_file(output_offsets, "/labeled-predictions", "0.txt")
+
         
 
 
