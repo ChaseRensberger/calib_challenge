@@ -64,8 +64,10 @@ def find_intersection(line1, line2):
     return int(x), int(y)
 
 def main():
-    cap = cv.VideoCapture("labeled/0.hevc")
+    cap = cv.VideoCapture("labeled/3.hevc")
     output_offsets = []
+    needs_first_frame = False
+    line_image = None
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -169,14 +171,21 @@ def main():
             try:
                 output_offsets.append(output_offsets[-1])
             except:
-                print("First frame error")
+                needs_first_frame = True
+        
+        if needs_first_frame and len(output_offsets) > 0:
+            output_offsets.insert(0, output_offsets[0])
+            needs_first_frame = False
 
         if cv.waitKey(50) & 0xFF == ord('q'):
             break
+        if line_image is None:
+            line_image = np.copy(frame)
         cv.imshow("frame", line_image)
+
     cap.release()
     cv.destroyAllWindows()
-    write_tuples_to_file(output_offsets, "/labeled-predictions", "0.txt")
+    write_tuples_to_file(output_offsets, "/labeled-predictions", "3.txt")
 
         
 

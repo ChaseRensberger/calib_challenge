@@ -16,7 +16,7 @@ def get_mse(gt, test):
 zero_mses = []
 mses = []
 
-for i in range(1):
+for i in range(3, 4):
   gt = np.loadtxt(GT_DIR + str(i) + '.txt')
   zero_mses.append(get_mse(gt, np.zeros_like(gt)))
 
