@@ -64,9 +64,10 @@ def find_intersection(line1, line2):
     return int(x), int(y)
 
 def main():
-    cap = cv.VideoCapture("labeled/3.hevc")
+    cap = cv.VideoCapture("labeled/4.hevc")
     output_offsets = []
-    needs_first_frame = False
+    mult = 1
+    current_frame_count = 0
     line_image = None
     while True:
         ret, frame = cap.read()
@@ -167,15 +168,6 @@ def main():
             output_offsets.append(("{:e}".format(abs(pitch_angle)), "{:e}".format(abs(yaw_angle))))
             print(f"Estimated Yaw: {yaw_angle} degrees")
             print(f"Estimated Pitch: {pitch_angle} degrees")
-        else:
-            try:
-                output_offsets.append(output_offsets[-1])
-            except:
-                needs_first_frame = True
-        
-        if needs_first_frame and len(output_offsets) > 0:
-            output_offsets.insert(0, output_offsets[0])
-            needs_first_frame = False
 
         if cv.waitKey(50) & 0xFF == ord('q'):
             break
@@ -183,9 +175,20 @@ def main():
             line_image = np.copy(frame)
         cv.imshow("frame", line_image)
 
+        if len(output_offsets) != current_frame_count + 1:
+            try:
+                for i in range(mult):
+                    output_offsets.append(output_offsets[-1])
+                if mult > 1:
+                    mult = 1
+            except:
+                mult = 2
+
+        current_frame_count += 1
+
     cap.release()
     cv.destroyAllWindows()
-    write_tuples_to_file(output_offsets, "/labeled-predictions", "3.txt")
+    write_tuples_to_file(output_offsets, "/labeled-predictions", "4.txt")
 
         
 
