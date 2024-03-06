@@ -44,6 +44,17 @@ def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
     # Return the modified image.
     return img
 
+def find_intersection(line1, line2):
+    x1, y1, x2, y2 = line1
+    x3, y3, x4, y4 = line2
+    denom = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
+    if denom == 0:
+        return None
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+    x = x1 + ua * (x2 - x1)
+    y = y1 + ua * (y2 - y1)
+    return int(x), int(y)
+
 cap = cv.VideoCapture("labeled/0.hevc")
 ret, image = cap.read()
 
@@ -116,6 +127,15 @@ line_image = draw_lines(
     ]],
     thickness=5,
 )
+
+vanishing_point = find_intersection(
+    (left_x_start, max_y, left_x_end, min_y),
+    (right_x_start, max_y, right_x_end, min_y)
+)
+
+if vanishing_point is not None:
+    cv.circle(line_image, vanishing_point, 10, (0, 255, 0), thickness=-1)
+
 plt.figure()
 plt.imshow(line_image)
 plt.show()
