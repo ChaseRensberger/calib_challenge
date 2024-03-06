@@ -1,70 +1,168 @@
 import cv2 as cv
 import numpy as np
-import os
+import math
 
-def write_tuples_to_file(array_of_tuples, subdirectory, file_name):
-    # See if there is a better way to do this
-    cwd = os.getcwd()
-    file_path = os.path.join(subdirectory, file_name)
-    with open(cwd + file_path, 'w') as file:
-        for tpl in array_of_tuples:
-            line = ' '.join(map(str, tpl)) + '\n'
-            file.write(line)
-
-def estimate_motion(video_path):
-    cap = cv.VideoCapture(video_path)
-
-    feature_params = dict( maxCorners = 100,
-                        qualityLevel = 0.3,
-                        minDistance = 7,
-                        blockSize = 7 )
+def region_of_interest(img, vertices):
+    # Define a blank matrix that matches the image height/width.
+    mask = np.zeros_like(img)
+    # Retrieve the number of color channels of the image.
+    # channel_count = img.shape[2]
+    channel_count = 2
+    # Create a match color with the same color channel counts.
+    match_mask_color = (255,) * channel_count
+      
+    # Fill inside the polygon
+    cv.fillPoly(mask, vertices, match_mask_color)
     
-    # Parameters for lucas kanade optical flow
-    lk_params = dict( winSize  = (15, 15),
-                    maxLevel = 2,
-                    criteria = (cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
-    
-    # Create some random colors
-    color = np.random.randint(0, 255, (100, 3))
-    # Take first frame and find corners in it
-    ret, prev_frame = cap.read()
-    old_gray = cv.cvtColor(prev_frame, cv.COLOR_BGR2GRAY)
-    p0 = cv.goodFeaturesToTrack(old_gray, mask = None, **feature_params)
-    # Create a mask image for drawing purposes
-    mask = np.zeros_like(prev_frame)
-    while(1):
+    # Returning the image only where mask pixels match
+    masked_image = cv.bitwise_and(img, mask)
+    return masked_image
+
+def draw_lines(img, lines, color=[255, 0, 0], thickness=3):
+    # If there are no lines to draw, exit.
+    if lines is None:
+        return
+    # Make a copy of the original image.
+    img = np.copy(img)
+    # Create a blank image that matches the original in size.
+    line_img = np.zeros(
+        (
+            img.shape[0],
+            img.shape[1],
+            3
+        ),
+        dtype=np.uint8,
+    )
+    # Loop over all lines and draw them on the blank image.
+    for line in lines:
+        for x1, y1, x2, y2 in line:
+            cv.line(line_img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
+    # Merge the image with the lines onto the original.
+    img = cv.addWeighted(img, 0.8, line_img, 1.0, 0.0)
+    # Return the modified image.
+    return img
+
+def find_intersection(line1, line2):
+    x1, y1, x2, y2 = line1
+    x3, y3, x4, y4 = line2
+    denom = ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1))
+    if denom == 0:
+        return None
+    ua = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) / denom
+    x = x1 + ua * (x2 - x1)
+    y = y1 + ua * (y2 - y1)
+    return int(x), int(y)
+
+def main():
+    cap = cv.VideoCapture("labeled/2.hevc")
+    while True:
         ret, frame = cap.read()
         if not ret:
-            print('No frames grabbed!')
             break
-        frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        # calculate optical flow
-        p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
-        # Select good points
-        if p1 is not None:
-            good_new = p1[st==1]
-            good_old = p0[st==1]
 
-        # draw the tracks
-        for i, (new, old) in enumerate(zip(good_new, good_old)):
-            a, b = new.ravel()
-            c, d = old.ravel()
-            mask = cv.line(mask, (int(a), int(b)), (int(c), int(d)), color[i].tolist(), 2)
-            frame = cv.circle(frame, (int(a), int(b)), 5, color[i].tolist(), -1)
-        img = cv.add(frame, mask)
-        cv.imshow('frame', img)
-        k = cv.waitKey(30) & 0xff
-        if k == 27:
+
+        height = frame.shape[0]
+        width = frame.shape[1]
+
+        region_of_interest_vertices = [
+            (0, height),
+            (width / 2, height / 3),
+            (width, height),
+        ]
+
+        gray_image = cv.cvtColor(frame, cv.COLOR_RGB2GRAY)
+        cannyed_image = cv.Canny(gray_image, 100, 200)
+        cropped_image = region_of_interest(
+            cannyed_image,
+            np.array(
+                [region_of_interest_vertices],
+                np.int32
+            ),
+        )
+        lines = cv.HoughLinesP(
+            cropped_image,
+            rho=6,
+            theta=np.pi / 60,
+            threshold=160,
+            lines=np.array([]),
+            minLineLength=40,
+            maxLineGap=25
+        )
+        left_line_x = []
+        left_line_y = []
+        right_line_x = []
+        right_line_y = []
+        if lines is not None:
+            for line in lines:
+                for x1, y1, x2, y2 in line:
+                    slope = (y2 - y1) / (x2 - x1) # <-- Calculating the slope.
+                    if math.fabs(slope) < 0.5: # <-- Only consider extreme slope
+                        continue
+                    if slope <= 0: # <-- If the slope is negative, left group.
+                        left_line_x.extend([x1, x2])
+                        left_line_y.extend([y1, y2])
+                    else: # <-- Otherwise, right group.
+                        right_line_x.extend([x1, x2])
+                        right_line_y.extend([y1, y2])
+        min_y = frame.shape[0] * (3 / 5) # <-- Just below the horizon
+        max_y = frame.shape[0] # <-- The bottom of the image
+        
+        if (len(left_line_x) > 0 and len(left_line_y) > 0) and len(right_line_x) > 0 and len(right_line_y) > 0:
+            poly_left = np.poly1d(np.polyfit(
+                left_line_y,
+                left_line_x,
+                deg=1
+            ))
+            left_x_start = int(poly_left(max_y))
+            left_x_end = int(poly_left(min_y))
+
+            poly_right = np.poly1d(np.polyfit(
+                right_line_y,
+                right_line_x,
+                deg=1
+            ))
+            right_x_start = int(poly_right(max_y))
+            right_x_end = int(poly_right(min_y))
+            line_image = draw_lines(
+                frame,
+                [[
+                    [left_x_start, max_y, left_x_end, min_y],
+                    [right_x_start, max_y, right_x_end, min_y],
+                ]],
+                thickness=5,
+            )
+
+            vanishing_point = find_intersection(
+                (left_x_start, max_y, left_x_end, min_y),
+                (right_x_start, max_y, right_x_end, min_y)
+            )
+
+            if vanishing_point is not None:
+                cv.circle(line_image, vanishing_point, 10, (0, 255, 0), thickness=-1)
+
+            center_x = width / 2
+            center_y = height / 2
+
+            disp_x = vanishing_point[0] - center_x
+            disp_y = vanishing_point[1] - center_y
+
+
+            focal_length = 910
+
+            yaw_angle = math.atan(disp_x / focal_length)
+            pitch_angle = math.atan(disp_y / focal_length)
+
+            print(f"Estimated Yaw: {yaw_angle} degrees")
+            print(f"Estimated Pitch: {pitch_angle} degrees")
+
+
+        if cv.waitKey(50) & 0xFF == ord('q'):
             break
-        # Now update the previous frame and previous points
-        old_gray = frame_gray.copy()
-        p0 = good_new.reshape(-1, 1, 2)
-
+        cv.imshow("frame", line_image)
+    cap.release()
     cv.destroyAllWindows()
+        
 
 
-video_path = 'labeled/0.hevc'
-estimate_motion(video_path=video_path)
-# write_tuples_to_file([(1,2),(3,4),(5,6)], "/labeled-predictions", "0.txt")
-
-
+if __name__ == "__main__":
+    main()
