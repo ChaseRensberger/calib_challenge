@@ -136,6 +136,22 @@ vanishing_point = find_intersection(
 if vanishing_point is not None:
     cv.circle(line_image, vanishing_point, 10, (0, 255, 0), thickness=-1)
 
+center_x = width / 2
+center_y = height / 2
+
+disp_x = vanishing_point[0] - center_x
+disp_y = vanishing_point[1] - center_y
+
+
+focal_length = 910
+
+yaw_angle = math.atan(disp_x / focal_length)
+pitch_angle = math.atan(disp_y / focal_length)
+
+print(f"Estimated Yaw: {yaw_angle} degrees")
+print(f"Estimated Pitch: {pitch_angle} degrees")
+
+
 plt.figure()
 plt.imshow(line_image)
 plt.show()
