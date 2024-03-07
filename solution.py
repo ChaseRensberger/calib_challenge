@@ -63,8 +63,8 @@ def find_intersection(line1, line2):
     y = y1 + ua * (y2 - y1)
     return int(x), int(y)
 
-def main():
-    cap = cv.VideoCapture("labeled/4.hevc")
+def processVideo(input_path, output_path, output_name, focal_length):
+    cap = cv.VideoCapture(input_path)
     output_offsets = []
     mult = 1
     current_frame_count = 0
@@ -160,9 +160,6 @@ def main():
             disp_x = vanishing_point[0] - center_x
             disp_y = vanishing_point[1] - center_y
 
-
-            focal_length = 910
-
             yaw_angle = math.atan(disp_x / focal_length)
             pitch_angle = math.atan(disp_y / focal_length)
             output_offsets.append(("{:e}".format(abs(pitch_angle)), "{:e}".format(abs(yaw_angle))))
@@ -188,8 +185,10 @@ def main():
 
     cap.release()
     cv.destroyAllWindows()
-    write_tuples_to_file(output_offsets, "/labeled-predictions", "4.txt")
+    write_tuples_to_file(output_offsets, output_path, output_name)
 
+def main():
+    processVideo(input_path="unlabeled/7.hevc", output_path="/unlabeled-predictions", output_name="7.txt", focal_length=910)
         
 
 
