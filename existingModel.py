@@ -29,6 +29,8 @@ def main():
         with torch.no_grad():
             det_out, da_seg_out, ll_seg_out = model(frame_tensor)
         
+        print(ll_seg_out)
+        
         cv2.imshow("frame", frame)
         if cv2.waitKey(50) & 0xFF == ord('q'):
             break
