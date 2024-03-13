@@ -188,7 +188,7 @@ def processVideo(input_path, output_path, output_name, focal_length):
     write_tuples_to_file(output_offsets, output_path, output_name)
 
 def main():
-    for i in range(5):
+    for i in range(1):
         processVideo(input_path=f"labeled/{i}.hevc", output_path="/labeled-predictions", output_name=f"{i}.txt", focal_length=910)
         
 
