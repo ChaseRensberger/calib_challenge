@@ -4,7 +4,7 @@ from torchvision import transforms
 import numpy as np
 import matplotlib.pyplot as plt
 
-def visualize_lane_lines_new_new(frame, ll_seg_out, threshold=0.95):
+def visualize_lane_lines(frame, ll_seg_out, threshold=0.95):
     # Assuming ll_seg_out is a tensor of shape [1, 2, H, W]
     # We'll take the max of the two channels to get the best prediction for lane lines
     lane_line_probs, _ = torch.max(ll_seg_out, dim=1)  # Reduce across the channel dimension
@@ -23,37 +23,6 @@ def visualize_lane_lines_new_new(frame, ll_seg_out, threshold=0.95):
 
     return visualized_frame
 
-
-def visualize_lane_lines_new(frame, ll_seg_out, threshold=0.99):
-    # Assuming ll_seg_out is a tensor of shape [1, 2, H, W]
-    # and the first channel represents the lane line probabilities
-    # We'll take the max of the two channels to get the best prediction for lane lines
-    lane_line_probs, _ = torch.max(ll_seg_out, dim=1)  # Reduce across the channel dimension
-    lane_line_mask = lane_line_probs.squeeze().cpu().numpy() > threshold
-
-    # Resize the binary mask to match the original frame size
-    lane_line_mask = cv2.resize(lane_line_mask.astype(np.uint8), (frame.shape[1], frame.shape[0]))
-
-    # Create an overlay to draw the lane lines
-    overlay = np.zeros_like(frame)
-    overlay[:, :, 2] = lane_line_mask * 255  # Assuming lane lines are to be visualized in red channel
-
-    # Blend the overlay with the original frame
-    visualized_frame = cv2.addWeighted(frame, 1, overlay, 0.4, 0)
-
-    return visualized_frame
-
-def visualize_lane_lines(frame, ll_seg_out, threshold=0.5):
-    lane_line_mask = ll_seg_out.squeeze().cpu().numpy()
-    lane_line_mask = lane_line_mask > threshold
-
-    lane_line_mask = cv2.resize(lane_line_mask.astype(np.uint8), (frame.shape[1], frame.shape[0]))
-
-    overlay = np.zeros_like(frame)
-    overlay[lane_line_mask == 1] = (0, 255, 0)
-    combined = cv2.addWeighted(frame, 1, overlay, 0.4, 0)
-    return combined
-
 def main():
     model = torch.hub.load('hustvl/yolop', 'yolop', pretrained=True)
     model.eval()
@@ -66,20 +35,6 @@ def main():
     ])
     
     cap = cv2.VideoCapture("labeled/0.hevc")
-    # ret, frame = cap.read()
-    # if not ret:
-    #     return
-    # plt.figure()
-    # plt.imshow(frame)
-
-    # frame_tensor = transform(frame).unsqueeze(0)
-
-    # with torch.no_grad():
-    #     det_out, da_seg_out, ll_seg_out = model(frame_tensor)
-    
-    # lane_line_frame = visualize_lane_lines_new(frame, ll_seg_out)
-    # plt.imshow(lane_line_frame)
-    # plt.show()
 
     while True:
         ret, frame = cap.read()
@@ -95,7 +50,7 @@ def main():
         with torch.no_grad():
             det_out, da_seg_out, ll_seg_out = model(frame_tensor)
         
-        lane_line_frame = visualize_lane_lines_new_new(frame, ll_seg_out)
+        lane_line_frame = visualize_lane_lines(frame, ll_seg_out)
         
         cv2.imshow("frame", lane_line_frame)
         if cv2.waitKey(50) & 0xFF == ord('q'):
