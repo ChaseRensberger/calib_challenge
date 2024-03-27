@@ -2,7 +2,6 @@ import cv2
 import torch
 from torchvision import transforms
 import numpy as np
-import matplotlib.pyplot as plt
 
 def visualize_lane_lines(frame, ll_seg_out, threshold=0.95):
     # Assuming ll_seg_out is a tensor of shape [1, 2, H, W]
