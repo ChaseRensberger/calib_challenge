@@ -3,7 +3,6 @@ import numpy as np
 import cv2 as cv
 import math
 
-
 def region_of_interest(img, vertices):
     # Define a blank matrix that matches the image height/width.
     mask = np.zeros_like(img)
