@@ -1,6 +1,6 @@
 This is a solution to the comma.ai calibration challenge. Work is still being done to improve it but a valid solution nonetheless. A video output can be previewed below:
 
-https://youtu.be/Fka8QpD5tyo
+https://github.com/ChaseRensberger/calib_challenge/assets/52985426/cfb3494b-e58e-45ed-8220-83b21790d4d9
 
 Welcome to the comma.ai Calibration Challenge!
 ======
@@ -15,7 +15,7 @@ Your goal is to predict the direction of travel (in camera frame) from provided 
 - You can estimate the focal length to be 910 pixels.
 
 
-![picture](https://user-images.githubusercontent.com/6804392/116619874-e78a8180-a8f5-11eb-93e3-c9c852726db8.png)
+
 
 Context
 ------
