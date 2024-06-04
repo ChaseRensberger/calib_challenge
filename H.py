@@ -69,11 +69,13 @@ def processVideo(input_path, output_path, output_name, focal_length):
     mult = 1
     current_frame_count = 0
     line_image = None
+
+    out = cv.VideoWriter('video.avi', cv.VideoWriter_fourcc(*'MJPG'), 10, (1164, 874))
+
     while True:
         ret, frame = cap.read()
         if not ret:
             break
-
 
         height = frame.shape[0]
         width = frame.shape[1]
@@ -171,6 +173,7 @@ def processVideo(input_path, output_path, output_name, focal_length):
         if line_image is None:
             line_image = np.copy(frame)
         cv.imshow("frame", line_image)
+        out.write(line_image)
 
         if len(output_offsets) != current_frame_count + 1:
             try:
@@ -184,6 +187,7 @@ def processVideo(input_path, output_path, output_name, focal_length):
         current_frame_count += 1
 
     cap.release()
+    out.release()
     cv.destroyAllWindows()
     write_tuples_to_file(output_offsets, output_path, output_name)
 

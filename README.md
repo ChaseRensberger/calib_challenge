@@ -1,3 +1,7 @@
+This is a solution to the comma.ai calibration challenge. Work is still being done to improve it but a valid solution nonetheless. A video output can be previewed below:
+
+https://youtu.be/Fka8QpD5tyo
+
 Welcome to the comma.ai Calibration Challenge!
 ======
 
